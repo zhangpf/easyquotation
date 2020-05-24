@@ -13,6 +13,7 @@ class BaseQuotation(metaclass=abc.ABCMeta):
     """行情获取基类"""
 
     max_num = 800  # 每次请求的最大股票数
+    max_wait_seconds = 5 # 请求的最大等待秒数
 
     @property
     @abc.abstractmethod
@@ -98,7 +99,11 @@ class BaseQuotation(metaclass=abc.ABCMeta):
             ),
         }
 
-        r = self._session.get(self.stock_api + params, headers=headers)
+        try:
+            r = self._session.get(self.stock_api + params, headers=headers, timeout=self.max_wait_seconds)
+        except requests.exceptions.Timeout as e:
+            warnings.warn("timeout occured when make request: {}, msg: {}".format(self.stock_api + params, e))
+            return None
         return r.text
 
     def get_stock_data(self, stock_list, **kwargs):
